@@ -1,0 +1,56 @@
+# Task 1: Credit Scoring Model (fixed for no header in ZIP)
+
+import pandas as pd
+import zipfile
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, roc_auc_score
+
+# Step 1: Load ZIP and read CSV with no header
+zip_path = 'C:/Users/HP/Downloads/statlog+german+credit+data.zip'
+
+with zipfile.ZipFile(zip_path, 'r') as z:
+    print("📂 Files in ZIP:", z.namelist())
+    csv_filename = z.namelist()[0]
+    with z.open(csv_filename) as f:
+        data = pd.read_csv(f, header=None, delim_whitespace=True)
+    print(df.head()    
+
+# Step 2: Add proper column names (from German Credit dataset definition)
+column_names = [
+    'Status', 'Duration', 'CreditHistory', 'Purpose', 'CreditAmount', 'Savings',
+    'EmploymentSince', 'InstallmentRate', 'PersonalStatusSex', 'Debtors',
+    'ResidenceSince', 'Property', 'Age', 'OtherInstallmentPlans', 'Housing',
+    'ExistingCredits', 'Job', 'LiablePeople', 'Telephone', 'ForeignWorker', 'Creditworthy'
+]
+data.columns = column_names
+
+print("✅ Dataset loaded with fixed column names:")
+print(data.head())
+
+# Step 3: Preprocessing
+data.dropna(inplace=True)
+
+X = data.drop('Creditworthy', axis=1)
+y = data['Creditworthy']
+
+# Step 4: One-hot encode categorical columns
+X = pd.get_dummies(X)
+
+# Step 5: Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 6: Feature scaling
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Step 7: Train model
+model = RandomForestClassifier()
+model.fit(X_train, y_train)
+
+# Step 8: Evaluate
+y_pred = model.predict(X_test)
+print("\n📊 Classification Report:\n", classification_report(y_test, y_pred))
+print("📈 ROC-AUC Score:", roc_auc_score(y_test, model.predict_proba(X_test)[:, 1]))
