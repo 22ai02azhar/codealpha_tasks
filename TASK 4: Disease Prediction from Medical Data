@@ -1,0 +1,98 @@
+!pip install imbalanced-learn
+
+import pandas as pd
+
+
+Medical=pd.read_csv("heart ML_Project.zip")
+
+Medical
+
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, LabelEncoder, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer # Import SimpleImputer
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+from sklearn.svm import SVC
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
+
+
+# Step 2: Check for missing values
+print("Missing Values:\n", Medical.isnull().sum())
+
+# Step 3: Features and Target
+X =Medical.drop('Heart Disease Status', axis=1)  # 'Heart Disease Status' is the outcome variable (0 = No disease, 1 = Disease)
+y = Medical['Heart Disease Status']
+
+# Step 4: Identify Categorical and Numerical Features
+categorical_features = X.select_dtypes(include=['object']).columns
+numerical_features = X.select_dtypes(exclude=['object']).columns
+
+# Step 5: Create Preprocessing Pipelines for Numerical and Categorical Features
+# Create numerical pipeline with imputation and scaling
+numerical_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='mean')), # Impute missing numerical values with the mean
+    ('scaler', StandardScaler())
+])
+
+# Create categorical pipeline with imputation and one-hot encoding
+categorical_pipeline = Pipeline([
+    ('imputer', SimpleImputer(strategy='most_frequent')), # Impute missing categorical values with the most frequent
+    ('onehot', OneHotEncoder(handle_unknown='ignore')) # Handle unknown categories by ignoring them
+])
+
+
+# Step 6: Create a Column Transformer to apply different transformations to different columns
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numerical_pipeline, numerical_features),
+        ('cat', categorical_pipeline, categorical_features)])
+
+# Step 7: Train-Test Split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# Step 8: Apply Preprocessing
+X_train_processed = preprocessor.fit_transform(X_train)
+X_test_processed = preprocessor.transform(X_test)
+
+# Step 9: Initialize Models
+models = {
+    "SVM": SVC(probability=True),
+    "Logistic Regression": LogisticRegression(),
+    "Random Forest": RandomForestClassifier(),
+    "XGBoost": XGBClassifier(use_label_encoder=False, eval_metric='logloss')
+}
+
+# Step 10: Train & Evaluate Models
+# Convert target variable to numerical labels for models that require it (like XGBoost)
+le = LabelEncoder()
+y_train_encoded = le.fit_transform(y_train)
+y_test_encoded = le.transform(y_test)
+
+
+for name, model in models.items():
+    print(f"\n Model: {name}")
+    if name == "XGBoost":
+      model.fit(X_train_processed, y_train_encoded)
+      y_pred = model.predict(X_test_processed)
+      acc = accuracy_score(y_test_encoded, y_pred)
+      print("Accuracy:", acc)
+      print("Confusion Matrix:\n", confusion_matrix(y_test_encoded, y_pred))
+      print("Classification Report:\n", classification_report(y_test_encoded, y_pred))
+    else:
+      model.fit(X_train_processed, y_train)
+      y_pred = model.predict(X_test_processed)
+      acc = accuracy_score(y_test, y_pred)
+      print("Accuracy:", acc)
+      print("Confusion Matrix:\n", confusion_matrix(y_test, y_pred))
+      print("Classification Report:\n", classification_report(y_test, y_pred))
+
+print(y.value_counts())  # Check class distribution
+
+
+print(X.value_counts()) 
+
+ 
